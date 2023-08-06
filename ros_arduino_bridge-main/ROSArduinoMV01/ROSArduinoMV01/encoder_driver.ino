@@ -56,8 +56,19 @@
   
   /* Wrap the encoder reading function */
   long readEncoder(int i) {
-    if (i == LEFT) return left_enc_pos;
-    else return right_enc_pos;
+
+    if (i == LEFT) {
+      left_enc_pos = left_enc_pos + 60;
+      return left_enc_pos;
+    } 
+    else {
+      right_enc_pos = right_enc_pos + 60;
+      return right_enc_pos;
+    }
+        
+
+    // if (i == LEFT) return left_enc_pos;
+    // else return right_enc_pos;
   }
 
   /* Wrap the encoder reset function */
