@@ -218,11 +218,11 @@ int runCommand() {
   char *p = argv1;
   char *str;
   int pid_args[4];
-  char buff[50];
+  // char buff[50];
   arg1 = atoi(argv1);
   arg2 = atoi(argv2);
-  sprintf(buff, "In runCommand %c, %s, %s", cmd, argv1, argv2);
-  Serial.println(buff);
+  // sprintf(buff, "In runCommand %c, %s, %s", cmd, argv1, argv2);
+  // Serial.println(buff);
   switch(cmd) {   
     case READ_ENCODERS:
       Serial.print(readEncoder(LEFT_MOTOR));
@@ -413,9 +413,9 @@ ISR(TIMER1_COMPA_vect)
 
 void setup() {
   Serial.begin(57600);
-  Serial.println(VERSIONMSG);
+  // Serial.println(VERSIONMSG);
   setupPins();
-  Serial.println("settng timer to 16kHz");
+  // Serial.println("settng timer to 16kHz");
   defineTimer();
 }
 
@@ -431,18 +431,18 @@ void loop() {
     
     // Read the next character
     chr = Serial.read();
-    Serial.print(chr);
+    // Serial.print(chr);
     // Terminate a command with a CR
     if (chr == '\n') {
-       Serial.println("CR REceived");
+      // Serial.println("CR REceived");
  
       if (arg == 1) argv1[index] = 0;
       else if (arg == 2) {
         argv2[index] = 0;
-        Serial.print("argv1 ");
-        Serial.println(argv1);
-        Serial.print("argv2 ");
-        Serial.println(argv2);
+        // Serial.print("argv1 ");
+        // Serial.println(argv1);
+        // Serial.print("argv2 ");
+        // Serial.println(argv2);
       }
       runCommand();
       resetCommand();
@@ -450,8 +450,8 @@ void loop() {
     // Use spaces to delimit parts of the command
     else if (chr == ' ') {
       // Step through the arguments
-      Serial.print("arg after ' '");
-      Serial.println(arg);
+      // Serial.print("arg after ' '");
+      // Serial.println(arg);
       
       if (arg == 0) arg = 1;
       else if (arg == 1)  {

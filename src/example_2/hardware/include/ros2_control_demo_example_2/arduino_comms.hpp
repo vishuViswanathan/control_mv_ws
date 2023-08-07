@@ -81,12 +81,12 @@ public:
 
   void send_empty_msg()
   {
-    std::string response = send_msg("\r");
+    std::string response = send_msg("\n");
   }
 
   void read_encoder_values(int &val_1, int &val_2)
   {
-    std::string response = send_msg("e\r");
+    std::string response = send_msg("e\n", true);
 
     std::string delimiter = " ";
     size_t del_pos = response.find(delimiter);
@@ -99,14 +99,14 @@ public:
   void set_motor_values(int val_1, int val_2)
   {
     std::stringstream ss;
-    ss << "m " << val_1 << " " << val_2 << "\r";
-    send_msg(ss.str());
+    ss << "m " << val_1 << " " << val_2 << "\n";
+    send_msg(ss.str(), true);
   }
 
   void set_pid_values(int k_p, int k_d, int k_i, int k_o)
   {
     std::stringstream ss;
-    ss << "u " << k_p << ":" << k_d << ":" << k_i << ":" << k_o << "\r";
+    ss << "u " << k_p << ":" << k_d << ":" << k_i << ":" << k_o << "\n";
     send_msg(ss.str());
   }
 

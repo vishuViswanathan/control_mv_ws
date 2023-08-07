@@ -219,8 +219,8 @@ int runCommand() {
   char *str;
   int pid_args[4];
   // char buff[50];
-  arg1 = - atoi(argv1); // negated to match d irection  as in rviz
-  arg2 = - atoi(argv2); // negated to match d irection  as in rviz
+  arg1 = atoi(argv1); 
+  arg2 = atoi(argv2); 
   // sprintf(buff, "In runCommand %c, %s, %s", cmd, argv1, argv2);
   // Serial.println(buff);
   switch(cmd) {   
@@ -236,7 +236,8 @@ int runCommand() {
     case MOTOR_SPEEDS:
       /* Reset the auto stop timer */
       lastMotorCommand = millis();
-      setMotorSpeeds(arg1, arg2);
+      // setMotorSpeeds(arg1, arg2);
+      setMotorSpeeds(arg2, arg1);  // Reversed for trial
       if (arg1 == 0 && arg2 == 0) {
         moving = 0;
       }
@@ -259,7 +260,7 @@ uint16_t subPeriod[2][8];        // eight subperiodPaddings
 uint8_t subPeriodIndex[2];       // index for subperiodPaddings
 int16_t requiredMotorSpeed[2];     // required speed of motors
 int16_t actualMotorSpeed[2];     // actual speed of motors
-uint8_t actualMotorDir[2];       // actual direction of steppers motors
+uint8_t actualMotorDir[2];       // actual direction of steppers motors true is Forwared
 
 
 #define ZERO_SPEED  65535
@@ -283,11 +284,8 @@ void calculateSubperiods(uint8_t motor) {
     return;
   }
   
-  #ifdef REVERSE_MOTORS_DIRECTION
-    actualMotorDir[motor] = (actualMotorSpeed[motor] > 0) ? 1 : 0; 
-  #else
-    actualMotorDir[motor] = (actualMotorSpeed[motor] > 0) ? 0 : 1; 
-  #endif  
+  actualMotorDir[motor] = (actualMotorSpeed[motor] > 0) ? 1 : 0; // true is Forwared
+
   
   absSpeed = abs(actualMotorSpeed[motor]);
 
@@ -375,7 +373,7 @@ ISR(TIMER1_COMPA_vect)
     
     if (subPeriod[RIGHT_MOTOR][0] != ZERO_SPEED) {
       if (actualMotorDir[RIGHT_MOTOR]) {
-        SET(PORTD,RDIRPINOFFSET);  // DIR Motor 1
+        SET(PORTD,RDIRPINOFFSET);  // DIR Motor right
         r_motor_steps++;
       } else {
         CLR(PORTD,RDIRPINOFFSET);
@@ -384,7 +382,7 @@ ISR(TIMER1_COMPA_vect)
       // We need to wait at lest 200ns to generate the Step pulse...(?)
       subPeriodIndex[RIGHT_MOTOR] = (subPeriodIndex[RIGHT_MOTOR]+1)&0x07; // subPeriodIndex from 0 to 7
       
-      SET(PORTD, RSTPPINOFFSET); // STEP Motor 1
+      SET(PORTD, RSTPPINOFFSET); // STEP Motor right
       delayMicroseconds(1);
       CLR(PORTD, RSTPPINOFFSET);
     }
@@ -396,7 +394,7 @@ ISR(TIMER1_COMPA_vect)
     if (subPeriod[LEFT_MOTOR][0] != ZERO_SPEED) {
     
       if (actualMotorDir[LEFT_MOTOR]) {
-        SET(PORTD, LDIRPINOFFSET);   // DIR Left
+        SET(PORTD, LDIRPINOFFSET);   // DIR Motor left
         l_motor_steps++;
       } else {
         CLR(PORTD, LDIRPINOFFSET);
@@ -404,7 +402,7 @@ ISR(TIMER1_COMPA_vect)
       }  
       subPeriodIndex[LEFT_MOTOR] = (subPeriodIndex[LEFT_MOTOR]+1)&0x07;
       
-      SET(PORTD, LSTPPINOFFSET); // STEP Right Motor
+      SET(PORTD, LSTPPINOFFSET); // STEP Motor left
       delayMicroseconds(1);
       CLR(PORTD, LSTPPINOFFSET);
     }

@@ -169,15 +169,25 @@ hardware_interface::return_type DiffBotSystemHardware::read(
   // wheel_r_.pos = wheel_r_.pos + wheel_r_.cmd * delta_seconds;
   // wheel_r_.vel = (wheel_r_.pos - pos_prev) / delta_seconds;
 // 
+     RCLCPP_INFO
+       (rclcpp::get_logger("DiffBotSystemHardware"),
+       "11:14 wheel_l_.enc '%7d', wheel_r_.vel '%9.3f', delta_seconds '%10.5f'.", wheel_l_.enc, wheel_r_.vel, delta_seconds);
+  
   return hardware_interface::return_type::OK;
 }
 
 hardware_interface::return_type ros2_control_demo_example_2 ::DiffBotSystemHardware::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  int motor_l_counts_per_loop = wheel_l_.cmd / wheel_l_.rads_per_count / cfg_.loop_rate;
-  int motor_r_counts_per_loop = wheel_r_.cmd / wheel_r_.rads_per_count / cfg_.loop_rate; 
+  // int motor_l_counts_per_loop = wheel_l_.cmd / wheel_l_.rads_per_count / cfg_.loop_rate;
+  // int motor_r_counts_per_loop = wheel_r_.cmd / wheel_r_.rads_per_count / cfg_.loop_rate; 
+  int motor_l_counts_per_loop = wheel_l_.cmd / wheel_l_.rads_per_count;
+  int motor_r_counts_per_loop = wheel_r_.cmd / wheel_r_.rads_per_count; 
   comms_.set_motor_values(motor_l_counts_per_loop, motor_r_counts_per_loop);
+     RCLCPP_INFO
+       (rclcpp::get_logger("DiffBotSystemHardware"),
+       "SENDING motor_l_counts_per_loop '%7d', motor_r_counts_per_loop.vel '%7d'.", 
+        motor_l_counts_per_loop, motor_r_counts_per_loop);
   return hardware_interface::return_type::OK;
 }
 
