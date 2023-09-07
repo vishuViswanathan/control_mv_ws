@@ -6,7 +6,8 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
 
     diffbot_base_controller:
-      type: diff_drive_controller/DiffDriveController
+#      type: diff_drive_controller/DiffDriveController
+      type: diffdrive_ardiuino/DiffDriveController
 
 diffbot_base_controller:
   ros__parameters:
@@ -27,7 +28,7 @@ diffbot_base_controller:
     pose_covariance_diagonal : [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
     twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
 
-    open_loop: true
+    open_loop: false
     enable_odom_tf: true
 
     cmd_vel_timeout: 0.5
@@ -40,7 +41,7 @@ diffbot_base_controller:
     linear.x.has_velocity_limits: true
     linear.x.has_acceleration_limits: true
     linear.x.has_jerk_limits: false
-    linear.x.max_velocity: 1.0
+    linear.x.max_velocity: 0.1
     linear.x.min_velocity: -1.0
     linear.x.max_acceleration: 1.0
     linear.x.max_jerk: 0.0

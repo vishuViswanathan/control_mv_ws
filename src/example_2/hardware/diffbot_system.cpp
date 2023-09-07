@@ -164,11 +164,11 @@ hardware_interface::return_type DiffBotSystemHardware::read(
   // double pos_prev = wheel_l_.pos;
   // wheel_l_.pos = wheel_l_.pos + wheel_l_.cmd * delta_seconds;
   // wheel_l_.vel = (wheel_l_.pos - pos_prev) / delta_seconds;
-// 
+
   // pos_prev = wheel_r_.pos;
   // wheel_r_.pos = wheel_r_.pos + wheel_r_.cmd * delta_seconds;
   // wheel_r_.vel = (wheel_r_.pos - pos_prev) / delta_seconds;
-// 
+
      RCLCPP_INFO
        (rclcpp::get_logger("DiffBotSystemHardware"),
        "11:14 wheel_l_.enc '%7d', wheel_r_.vel '%9.3f', delta_seconds '%10.5f'.", wheel_l_.enc, wheel_r_.vel, delta_seconds);

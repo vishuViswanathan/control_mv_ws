@@ -63,7 +63,7 @@ def generate_launch_description():
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[robot_description, robot_controllers],
-        output="both",
+ #       output="both",
     )
     robot_state_pub_node = Node(
         package="robot_state_publisher",
