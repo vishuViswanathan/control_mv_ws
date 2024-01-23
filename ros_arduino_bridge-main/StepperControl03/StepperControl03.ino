@@ -1,4 +1,4 @@
-#define VERSIONMSG "stepperControl02.ino"
+#define VERSIONMSG "stepperControl03.ino"
 #define ENAOBSTRUCTIONCHECK
 #include <SPI.h>
 
@@ -237,7 +237,7 @@ int runCommand() {
       /* Reset the auto stop timer */
       lastMotorCommand = millis();
       // setMotorSpeeds(arg1, arg2);
-      setMotorSpeeds(arg2, arg1);  // Reversed for trial
+      setMotorSpeeds(arg1, arg2); 
       if (arg1 == 0 && arg2 == 0) {
         moving = 0;
       }
@@ -323,7 +323,8 @@ void setMotorSpeeds(int s_left, int s_right) {
   // sprintf(buff, "setMotorSpeeds: l, r %d, %d",  s_left, s_right);
   // Serial.println(buff);
   setMotorSpeed(LEFT_MOTOR, s_left / 16);
-  setMotorSpeed(RIGHT_MOTOR, s_right / 16);
+  // modified to negate s_right)
+  setMotorSpeed(RIGHT_MOTOR, -s_right / 16);
 }
 
 void setMotorSpeed(uint8_t motorNum, int speed) {
@@ -372,12 +373,13 @@ ISR(TIMER1_COMPA_vect)
     periodsCounter[RIGHT_MOTOR] = 0;
     
     if (subPeriod[RIGHT_MOTOR][0] != ZERO_SPEED) {
+      // for right motor the count is reversed 20231128
       if (actualMotorDir[RIGHT_MOTOR]) {
         SET(PORTD,RDIRPINOFFSET);  // DIR Motor right
-        r_motor_steps++;
+        r_motor_steps--;
       } else {
         CLR(PORTD,RDIRPINOFFSET);
-        r_motor_steps--;
+        r_motor_steps++;
       }  
       // We need to wait at lest 200ns to generate the Step pulse...(?)
       subPeriodIndex[RIGHT_MOTOR] = (subPeriodIndex[RIGHT_MOTOR]+1)&0x07; // subPeriodIndex from 0 to 7
@@ -411,7 +413,7 @@ ISR(TIMER1_COMPA_vect)
 
 void setup() {
   Serial.begin(57600);
-  // Serial.println(VERSIONMSG);
+  Serial.println(VERSIONMSG);
   setupPins();
   // Serial.println("settng timer to 16kHz");
   defineTimer();
@@ -429,7 +431,7 @@ void loop() {
     
     // Read the next character
     chr = Serial.read();
-    // Serial.print(chr);
+    Serial.print(chr);
     // Terminate a command with a CR
     if (chr == '\n') {
       // Serial.println("CR Rceived");

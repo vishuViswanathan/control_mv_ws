@@ -55,18 +55,17 @@ struct Config
 
 public:
   RCLCPP_SHARED_PTR_DEFINITIONS(DiffBotSystemHardware);
+1.ce::HardwareInfo & info) override;
 
-  ROS2_CONTROL_DEMO_EXAMPLE_2_PUBLIC
-  hardware_interface::CallbackReturn on_init(
-    const hardware_interface::HardwareInfo & info) override;
+  private:
 
-  ROS2_CONTROL_DEMO_EXAMPLE_2_PUBLIC
-  std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
+    Config cfg_;
+    ArduinoComms arduino_;
 
-  ROS2_CONTROL_DEMO_EXAMPLE_2_PUBLIC
-  std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
+    Wheel l_wheel_;
+    Wheel r_wheel_;
 
-  ROS2_CONTROL_DEMO_EXAMPLE_2_PUBLIC
+    rclcpp::EXAMPLE_2_PUBLIC
   hardware_interface::CallbackReturn on_activate(
     const rclcpp_lifecycle::State & previous_state) override;
 
@@ -80,14 +79,16 @@ public:
 
   ROS2_CONTROL_DEMO_EXAMPLE_2_PUBLIC
   hardware_interface::return_type write(
-    const rclcpp::Time & time, const rclcpp::Duration & period) override;
+    const rclcpp::Ti
+  private:
 
-private:
-  ArduinoComms comms_;
-  Config cfg_;
-  Wheel wheel_l_;
-  Wheel wheel_r_;
-};
+    Config cfg_;
+    ArduinoComms arduino_;
+
+    Wheel l_wheel_;
+    Wheel r_wheel_;
+
+    rclcpp::
 
 }  // namespace ros2_control_demo_example_2
 

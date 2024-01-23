@@ -1,4 +1,4 @@
-#define VERSIONMSG "stepperControl02.ino"
+#define VERSIONMSG "stepperControlSP02.ino"
 #define ENAOBSTRUCTIONCHECK
 #include <SPI.h>
 
@@ -45,18 +45,9 @@
 
 
 // commands from Pi
-#define ANALOG_READ    'a'
-#define GET_BAUDRATE   'b'
-#define PIN_MODE       'c'
-#define DIGITAL_READ   'd'
-#define READ_ENCODERS  'e'
-#define MOTOR_SPEEDS   'm'
-#define MOTOR_RAW_PWM  'o'
-#define PING           'p'
-#define RESET_ENCODERS 'r'
-#define SERVO_WRITE    's'
-#define SERVO_READ     't'
-#define UPDATE_PID     'u'
+#define READ_ENCODERS  'E'
+#define MOTOR_SPEEDS   'S'
+#define RESET_ENCODERS 'R'
 
 #define LEFT_MOTOR  0
 #define RIGHT_MOTOR 1
@@ -143,50 +134,94 @@ void checkBlink() {
 	}   
 }
 
-long r_motor_steps = 0l;
-long l_motor_steps = 0l;
+volatile long r_motor_steps = 0l;
+volatile long l_motor_steps = 0l;
+
+// ========================================
+// ====      SPI and Remote Control    ====
+// ========================================
+
+#define BUFFER_SIZE 100
+
+char receiveBuf[BUFFER_SIZE];
+char sendBuf[BUFFER_SIZE];
+char tempBuf[BUFFER_SIZE];
+#define CANTMOVEFWD 8
+#define CANTMOVEREV 19
+
+byte c = 0, b=0;
+byte s = 0;
+volatile byte receivePos;
+volatile bool spiReceived;
+volatile byte sendPos;
+volatile bool sendDataReady;
+
+void getSPIready(){
+  pinMode(MISO, OUTPUT);
+  pinMode(MOSI, INPUT);
+  // turn on SPI in slave mode
+  SPCR |= _BV(SPE);
+  receivePos = 0;
+  sendPos = 0;
+  spiReceived = false;
+  sendDataReady = false;
+  SPI.attachInterrupt();
+}
+
+boolean all_params_taken = true;
+
+ISR (SPI_STC_vect) {
+  c = SPDR;
+  //  Serial.print("In ISR sendpos:\t");
+  // Serial.println(sendPos);
+  // if (receivePos == 0) 
+  //  prepareSendData();
+  if (!spiReceived) {
+    if (sendDataReady && sendPos < BUFFER_SIZE && (sendPos == receivePos)) {
+      s = sendBuf[sendPos++];
+      if (s == '\n') {
+ //       SPDR = '\n';
+        sendPos = 0;
+        sendDataReady = false;
+      }
+ //     else
+        SPDR = s;
+    }
+    if (receivePos < BUFFER_SIZE){
+      if (c == '\n') {
+        receiveBuf[receivePos++] = 0;
+        // Serial.println(receiveBuf);
+        spiReceived = true; 
+        runCommand(receiveBuf);
+        spiReceived = false;
+      }
+      else 
+        receiveBuf [receivePos++] = c;
+    }
+  }
+}
+
+void prepareSendData() {
+  if (!sendDataReady) {
+    // Serial.println("Preparing Response");
+    sprintf(sendBuf, "%+011ld %+011ld\n", l_motor_steps, r_motor_steps);
+    Serial.println(sendBuf);
+    sendDataReady = true;
+    sendPos = 0;
+  }
+} 
+
 
 
 /***********************************/
 /*********Handle control message form pi *******/
 //*********************************/
 
-// Taken from ROSAeduinoMV01.ino 
-
-/* Variable initialization */
-
-// A pair of varibles to help parse serial commands (thanks Fergs)
-int arg = 0;
-int index = 0;
-
-// Variable to hold an input character
-char chr;
-
-// Variable to hold the current single-character command
-char cmd;
-
-// Character arrays to hold the first and second arguments
-char argv1[16];
-char argv2[16];
-
-
-
 // The arguments converted to integers
 long arg1;
 long arg2;
 
 int moving = 0;
-
-/* Clear the current command parameters */
-void resetCommand() {
-  cmd = 0;
-  memset(argv1, 0, sizeof(argv1));
-  memset(argv2, 0, sizeof(argv2));
-  arg1 = 0;
-  arg2 = 0;
-  arg = 0;
-  index = 0;
-}
 
 void resetEncoders() {
   resetEncoder(LEFT_MOTOR);
@@ -203,51 +238,46 @@ void resetEncoder(int i) {
     }
   }
 
-long readEncoder(int n) {
-  if (n == LEFT_MOTOR)
-    return l_motor_steps;
-  else if (n == RIGHT_MOTOR)
-    return r_motor_steps;
-  else 
-    return 0;
-}
-
 /* Run a command.  Commands are defined in commands.h */
-int runCommand() {
-  int i = 0;
-  char *p = argv1;
-  char *str;
-  int pid_args[4];
-  // char buff[50];
-  arg1 = atoi(argv1); 
-  arg2 = atoi(argv2); 
-  // sprintf(buff, "In runCommand %c, %s, %s", cmd, argv1, argv2);
-  // Serial.println(buff);
-  switch(cmd) {   
-    case READ_ENCODERS:
-      Serial.print(readEncoder(LEFT_MOTOR));
-      Serial.print(" ");
-      Serial.println(readEncoder(RIGHT_MOTOR));
-      break;
+int runCommand(char *msg) {
+  char buff[200];
+  boolean retVal = false;
+  Serial.println("In runCommad ");
+  Serial.println(msg);
+  switch(msg[0]) {   
     case RESET_ENCODERS:
       resetEncoders();
-      Serial.println("OK");
       break;
     case MOTOR_SPEEDS:
       /* Reset the auto stop timer */
       lastMotorCommand = millis();
-      // setMotorSpeeds(arg1, arg2);
-      setMotorSpeeds(arg2, arg1);  // Reversed for trial
-      if (arg1 == 0 && arg2 == 0) {
-        moving = 0;
+      retVal =  (sscanf(msg, "Speed l:%ld r:%ld", &arg1, &arg2) == 2);
+      if (retVal) {
+          Serial.println("Got Speed setting Now");
+          sprintf(buff, "setMotorSpeeds: arg1 %ld, arg2 %ld",  arg1, arg2);
+          Serial.println(buff);
+  
+          // setMotorSpeeds(arg1, arg2);
+          setMotorSpeeds(arg1, arg2); 
+
+        if (arg1 == 0 && arg2 == 0) {
+          moving = 0;
+        }
+        else moving = 1;
       }
-      else moving = 1;
-      Serial.println("OK"); 
+      break;
+    case READ_ENCODERS:
+      Serial.println("Got Encoder request");
       break;
     default:
       Serial.println("Invalid Command");
       break;
   }
+	nextMessageFromPi = nowTime + PIMESSAGEDELAY;
+ 	receivePos = 0;
+	prepareSendData();
+	return retVal;
+
 }
 
 
@@ -319,11 +349,13 @@ void calculateSubperiods(uint8_t motor) {
 }
 
 void setMotorSpeeds(int s_left, int s_right) {
-  // char buff[100];
-  // sprintf(buff, "setMotorSpeeds: l, r %d, %d",  s_left, s_right);
-  // Serial.println(buff);
   setMotorSpeed(LEFT_MOTOR, s_left / 16);
-  setMotorSpeed(RIGHT_MOTOR, s_right / 16);
+  // modified to negate s_right)
+  setMotorSpeed(RIGHT_MOTOR, -s_right / 16);
+}
+
+void resetSpeed() {
+  setMotorSpeeds(0, 0);
 }
 
 void setMotorSpeed(uint8_t motorNum, int speed) {
@@ -372,12 +404,17 @@ ISR(TIMER1_COMPA_vect)
     periodsCounter[RIGHT_MOTOR] = 0;
     
     if (subPeriod[RIGHT_MOTOR][0] != ZERO_SPEED) {
+      // for right motor the count is reversed 20231128
       if (actualMotorDir[RIGHT_MOTOR]) {
         SET(PORTD,RDIRPINOFFSET);  // DIR Motor right
-        r_motor_steps++;
+        // noInterrupts();
+        r_motor_steps -= 1;
+        // interrupts();
       } else {
         CLR(PORTD,RDIRPINOFFSET);
-        r_motor_steps--;
+        // noInterrupts();
+        r_motor_steps += 1;
+        // interrupts();
       }  
       // We need to wait at lest 200ns to generate the Step pulse...(?)
       subPeriodIndex[RIGHT_MOTOR] = (subPeriodIndex[RIGHT_MOTOR]+1)&0x07; // subPeriodIndex from 0 to 7
@@ -395,10 +432,14 @@ ISR(TIMER1_COMPA_vect)
     
       if (actualMotorDir[LEFT_MOTOR]) {
         SET(PORTD, LDIRPINOFFSET);   // DIR Motor left
-        l_motor_steps++;
+        // noInterrupts();
+        l_motor_steps += 1;
+        // interrupts();
       } else {
         CLR(PORTD, LDIRPINOFFSET);
-        l_motor_steps--;
+        // noInterrupts();
+        l_motor_steps -= 1;
+        // interrupts();
       }  
       subPeriodIndex[LEFT_MOTOR] = (subPeriodIndex[LEFT_MOTOR]+1)&0x07;
       
@@ -411,10 +452,13 @@ ISR(TIMER1_COMPA_vect)
 
 void setup() {
   Serial.begin(57600);
-  // Serial.println(VERSIONMSG);
+  Serial.println(VERSIONMSG);
   setupPins();
-  // Serial.println("settng timer to 16kHz");
+  Serial.println("settng timer to 16kHz");
   defineTimer();
+  Serial.println("getSPIready");
+  getSPIready();
+  Serial.println("This is Arduino");
 }
 
 
@@ -424,65 +468,15 @@ void setup() {
 long now = 0;
 
 void loop() {
-  nowTime = micros();
-  while (Serial.available() > 0) {
-    
-    // Read the next character
-    chr = Serial.read();
-    // Serial.print(chr);
-    // Terminate a command with a CR
-    if (chr == '\n') {
-      // Serial.println("CR Rceived");
-  
-      if (arg == 1) argv1[index] = 0;
-      else if (arg == 2) {
-        argv2[index] = 0;
-        // Serial.print("argv1 ");
-        // Serial.println(argv1);
-        // Serial.print("argv2 ");
-        // Serial.println(argv2);
-      }
-      runCommand();
-      resetCommand();
-    }
-    // Use spaces to delimit parts of the command
-    else if (chr == ' ') {
-      // Step through the arguments
-      // Serial.print("arg after ' '");
-      // Serial.println(arg);
-      
-      if (arg == 0) arg = 1;
-      else if (arg == 1)  {
-        argv1[index] = 0;
-        arg = 2;
-        index = 0;
-      }
-      continue;
-    }
-    else {
-      if (arg == 0) {
-        // The first arg is the single-letter command
-        cmd = chr;
-      }
-      else if (arg == 1) {
-        // Subsequent arguments can be more than one character
-        argv1[index] = chr;
-        index++;
-      }
-      else if (arg == 2) {
-        argv2[index] = chr;
-        index++;
-      }
-    }
+  while(true) {
+	  nowTime = micros();
+	  if (nowTime > nextMessageFromPi) {
+			blinkInterval = PANICBLINK;
+			// resetSpeed();
+		}
+		else {
+		  blinkInterval = NORMALBLINK;
+		}
+	  checkBlink();
   }
-  
-  if ((millis() - lastMotorCommand) > AUTO_STOP_INTERVAL) {;
-    blinkInterval = PANICBLINK;
-    setMotorSpeeds(0, 0);
-    moving = 0;
-  }
-  else
-    blinkInterval = NORMALBLINK;
-
-  checkBlink();
 }
